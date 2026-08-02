@@ -1,25 +1,29 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from resolver import NavierStokesResolverR3
+import os
 
 app = FastAPI(
     title="NavierStokes Axiomatic Solution API",
     version="1.0.0"
 )
 
+# ---------------------------
+# UI ROUTE (SERVES index.html)
+# ---------------------------
+@app.get("/")
+def serve_ui():
+    return FileResponse(os.path.join("static", "index.html"))
+
+# ---------------------------
+# API MODELS & ENDPOINTS
+# ---------------------------
+
 class FlowEvaluationRequest(BaseModel):
     external_time: int = Field(..., description="External time t (WAD-scaled or integer base)")
     velocity: int = Field(..., description="Fluid velocity magnitude v (WAD-scaled)")
     viscosity: int = Field(10**16, description="Kinematic viscosity nu (WAD-scaled)")
-
-@app.get("/")
-def read_root():
-    return {
-        "status": "operational",
-        "service": "NavierStokes Axiomatic Solution API",
-        "docs": "/docs",
-        "health": "/health"
-    }
 
 @app.get("/health")
 def health_check():
