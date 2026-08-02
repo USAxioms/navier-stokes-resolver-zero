@@ -12,6 +12,15 @@ class FlowEvaluationRequest(BaseModel):
     velocity: int = Field(..., description="Fluid velocity magnitude v (WAD-scaled)")
     viscosity: int = Field(10**16, description="Kinematic viscosity nu (WAD-scaled)")
 
+@app.get("/")
+def read_root():
+    return {
+        "status": "operational",
+        "service": "NavierStokes Axiomatic Solution API",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health")
 def health_check():
     return {
