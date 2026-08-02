@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NavierStokes Axiomatic Solution Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        header {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background-color: var(--border);
+            color: var(--text-muted);
+        }
+        .status-badge.online {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        button {
+            background-color: var(--accent);
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        pre {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>NavierStokes R3 Resolver</h1>
+        <div id="statusBadge" class="status-badge">Checking connection...</div>
+    </header>
+
+    <div class="grid">
+        <!-- Input Form Card -->
+        <div class="card">
+            <h3>Flow Evaluation</h3>
+            <div class="form-group">
+                <label for="externalTime">External Time (t)</label>
+                <input type="number" id="externalTime" value="1000">
+            </div>
+            <div class="form-group">
+                <label for="velocity">Fluid Velocity (v)</label>
+                <input type="number" id="velocity" value="500">
+            </div>
+            <div class="form-group">
+                <label for="viscosity">Kinematic Viscosity (ν)</label>
+                <input type="number" id="viscosity" value="10000000000000000">
+            </div>
+            <button onclick="resolveFlow()">Execute Resolution</button>
+        </div>
+
+        <!-- System Diagnostics Card -->
+        <div class="card">
+            <h3>System Health & Axioms</h3>
+            <pre id="healthOutput">Loading health metrics...</pre>
+        </div>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card">
+        <h3>Evaluation Output</h3>
+        <pre id="resultOutput">Awaiting execution...</pre>
+    </div>
+</div>
+
+<script>
+    const API_BASE = "https://navier-stokes-resolver-zero-1.onrender.com";
+
+    async function checkHealth() {
+        const badge = document.getElementById("statusBadge");
+        const healthOutput = document.getElementById("healthOutput");
+        try {
+            const response = await fetch(`${API_BASE}/health`);
+            if (response.ok) {
+                const data = await response.json();
+                badge.textContent = "Operational";
+                badge.classList.add("online");
+                healthOutput.textContent = JSON.stringify(data, null, 2);
+            } else {
+                throw new Error("Service unavailable");
+            }
+        } catch (error) {
+            badge.textContent = "Offline / Error";
+            healthOutput.textContent = error.toString();
+        }
+    }
+
+    async function resolveFlow() {
+        const resultOutput = document.getElementById("resultOutput");
+        resultOutput.textContent = "Processing evaluation...";
+
+        const payload = {
+            external_time: parseInt(document.getElementById("externalTime").value),
+            velocity: parseInt(document.getElementById("velocity").value),
+            viscosity: parseInt(document.getElementById("viscosity").value)
+        };
+
+        try {
+            const response = await fetch(`${API_BASE}/resolve-flow`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                resultOutput.textContent = JSON.stringify(data, null, 2);
+            } else {
+                resultOutput.textContent = `Error: ${JSON.stringify(data, null, 2)}`;
+            }
+        } catch (error) {
+            resultOutput.textContent = `Network Error: ${error.message}`;
+        }
+    }
+
+    // Run health check on load
+    checkHealth();
+</script>
+
+</body>
+</html>
